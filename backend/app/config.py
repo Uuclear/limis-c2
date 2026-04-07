@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://limis:limis123@localhost:5432/limis"
+    DATABASE_URL: str = "postgresql://limis:limis123@localhost:5434/limis"
     REDIS_URL: str = "redis://localhost:6379/0"
     SECRET_KEY: str = "limis-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
