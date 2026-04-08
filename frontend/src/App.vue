@@ -1,7 +1,20 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <HelloWorld />
+  <router-view />
 </template>
+
+<script setup>
+import { onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
+
+const userStore = useUserStore()
+
+onMounted(async () => {
+  if (userStore.isLoggedIn()) {
+    try {
+      await userStore.fetchUserInfo()
+    } catch {
+      userStore.logout()
+    }
+  }
+})
+</script>
