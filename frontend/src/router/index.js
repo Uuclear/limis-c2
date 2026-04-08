@@ -19,6 +19,18 @@ const routes = [
         component: () => import('@/views/dashboard/index.vue'),
         meta: { title: '工作台' },
       },
+      {
+        path: 'projects',
+        name: 'ProjectList',
+        component: () => import('@/views/project/index.vue'),
+        meta: { title: '项目管理' },
+      },
+      {
+        path: 'projects/:id',
+        name: 'ProjectDetail',
+        component: () => import('@/views/project/detail.vue'),
+        meta: { title: '项目详情' },
+      },
     ],
   },
   {
