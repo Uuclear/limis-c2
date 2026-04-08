@@ -19,6 +19,17 @@ def setup_test_db():
     yield
     Base.metadata.drop_all(bind=engine)
 
+@pytest.fixture(autouse=True)
+def clean_tables(setup_test_db):
+    yield
+    session = TestSessionLocal()
+    try:
+        for table in reversed(Base.metadata.sorted_tables):
+            session.execute(table.delete())
+        session.commit()
+    finally:
+        session.close()
+
 @pytest.fixture()
 def db():
     session = TestSessionLocal()
