@@ -1,6 +1,7 @@
 """Seed initial roles, permissions, and admin user."""
 from app.core.security import hash_password
 from app.database import SessionLocal
+from app.models.project import Division, Project, SubItem, UnitProject
 from app.models.user import Department, Permission, Role, User
 
 ROLES = [
@@ -134,6 +135,8 @@ def seed():
         db.commit()
         print("Seed completed successfully!")
         print("Admin account: admin / admin123")
+
+        seed_project(db)
     except Exception as e:
         db.rollback()
         print(f"Seed failed: {e}")
@@ -142,5 +145,65 @@ def seed():
         db.close()
 
 
+def seed_project(db):
+    """Seed sample project hierarchy (can be called independently)."""
+    if not db.query(Project).filter(Project.code == "PDAP-4-2026").first():
+        project = Project(
+            name="浦东国际机场四期扩建工程",
+            code="PDAP-4-2026",
+            description="上海浦东国际机场四期扩建工程，包含T3航站楼、跑道、滑行道等",
+            location="上海市浦东新区",
+            client_name="上海机场集团有限公司",
+            contact_person="张三",
+            contact_phone="021-12345678",
+        )
+        db.add(project)
+        db.flush()
+
+        t3 = UnitProject(name="T3航站楼", code="T3", project_id=project.id, description="第三航站楼主体工程")
+        runway = UnitProject(name="第五跑道", code="RW5", project_id=project.id, description="新建第五跑道工程")
+        db.add_all([t3, runway])
+        db.flush()
+
+        t3_foundation = Division(name="地基与基础", code="T3-DJ", unit_project_id=t3.id)
+        t3_structure = Division(name="主体结构", code="T3-ZT", unit_project_id=t3.id)
+        t3_steel = Division(name="钢结构", code="T3-GG", unit_project_id=t3.id)
+        rw_base = Division(name="道面基层", code="RW5-JC", unit_project_id=runway.id)
+        rw_surface = Division(name="道面面层", code="RW5-MC", unit_project_id=runway.id)
+        db.add_all([t3_foundation, t3_structure, t3_steel, rw_base, rw_surface])
+        db.flush()
+
+        sub_items = [
+            SubItem(name="钢筋连接", code="T3-DJ-GJLJ", division_id=t3_foundation.id),
+            SubItem(name="混凝土强度", code="T3-DJ-HNTQD", division_id=t3_foundation.id),
+            SubItem(name="钢筋原材", code="T3-ZT-GJYC", division_id=t3_structure.id),
+            SubItem(name="混凝土试块", code="T3-ZT-HNTSK", division_id=t3_structure.id),
+            SubItem(name="高强螺栓", code="T3-GG-GQLS", division_id=t3_steel.id),
+            SubItem(name="焊接质量", code="T3-GG-HJZL", division_id=t3_steel.id),
+            SubItem(name="水泥稳定碎石", code="RW5-JC-SNSS", division_id=rw_base.id),
+            SubItem(name="沥青混凝土", code="RW5-MC-LQHNT", division_id=rw_surface.id),
+            SubItem(name="水泥混凝土道面", code="RW5-MC-SNDM", division_id=rw_surface.id),
+        ]
+        db.add_all(sub_items)
+        db.commit()
+        print("✓ Sample project hierarchy seeded")
+    else:
+        print("✓ Sample project already exists, skipping")
+
+
+def seed_all():
+    """Run all seeds including project data."""
+    db = SessionLocal()
+    try:
+        seed_project(db)
+    except Exception as e:
+        db.rollback()
+        print(f"Project seed failed: {e}")
+        raise
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     seed()
+    seed_all()
