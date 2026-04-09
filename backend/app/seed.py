@@ -137,6 +137,8 @@ def seed():
         print("Admin account: admin / admin123")
 
         seed_project(db)
+        seed_numbering_rules(db)
+        seed_commissions_and_samples(db)
     except Exception as e:
         db.rollback()
         print(f"Seed failed: {e}")
@@ -191,14 +193,106 @@ def seed_project(db):
         print("✓ Sample project already exists, skipping")
 
 
+def seed_numbering_rules(db):
+    """Seed default numbering rules."""
+    from app.models.numbering import NumberingRule
+    from datetime import date
+    if not db.query(NumberingRule).first():
+        db.add(NumberingRule(
+            entity_type="commission", name="委托单编号规则",
+            prefix="WT", date_format="YYYY", separator="-",
+            sequence_digits=4, sequence_reset="yearly",
+            current_sequence=0, last_reset_date=date.today(), is_active=True,
+        ))
+        db.add(NumberingRule(
+            entity_type="sample", name="样品编号规则",
+            prefix="YP", date_format="YYYY", separator="-",
+            sequence_digits=4, sequence_reset="yearly",
+            current_sequence=0, last_reset_date=date.today(), is_active=True,
+        ))
+        db.commit()
+        print("✓ Numbering rules seeded")
+    else:
+        print("✓ Numbering rules already exist, skipping")
+
+
+def seed_commissions_and_samples(db):
+    """Seed sample commissions and samples for the demo project."""
+    from app.models.commission import Commission
+    from app.models.sample import Sample
+    from app.models.project import Project, SubItem
+    from app.services.numbering_service import generate_number
+
+    if db.query(Commission).first():
+        print("✓ Commissions already exist, skipping")
+        return
+
+    project = db.query(Project).filter(Project.code == "PDAP-4-2026").first()
+    if not project:
+        print("✗ Demo project not found, skipping commission seed")
+        return
+
+    admin = db.query(User).filter(User.username == "admin").first()
+    sub_items = db.query(SubItem).limit(3).all()
+    if not sub_items or not admin:
+        print("✗ Missing sub_items or admin, skipping")
+        return
+
+    # Commission 1 — approved with samples
+    c1_no = generate_number(db, "commission")
+    c1 = Commission(
+        commission_no=c1_no, project_id=project.id, sub_item_id=sub_items[0].id,
+        client_name="上海机场集团有限公司", client_contact="张三", client_phone="021-12345678",
+        description="钢筋连接力学性能检测", sample_count=3,
+        status="approved", submitted_by=admin.id, reviewed_by=admin.id,
+        review_comment="审核通过",
+    )
+    db.add(c1)
+    db.flush()
+
+    # Samples for c1
+    for i, (name, mat) in enumerate([
+        ("HRB400钢筋接头", "钢筋"), ("HRB500钢筋接头", "钢筋"), ("预应力钢绞线", "钢绞线"),
+    ]):
+        sno = generate_number(db, "sample")
+        status = ["received", "testing", "pending"][i]
+        s = Sample(
+            sample_no=sno, commission_id=c1.id, name=name,
+            material_type=mat, quantity=3, quantity_unit="组", status=status,
+        )
+        db.add(s)
+
+    # Commission 2 — submitted (pending review)
+    c2_no = generate_number(db, "commission")
+    c2 = Commission(
+        commission_no=c2_no, project_id=project.id, sub_item_id=sub_items[1].id,
+        client_name="上海机场集团有限公司", description="混凝土强度检测",
+        sample_count=5, status="submitted", submitted_by=admin.id,
+    )
+    db.add(c2)
+
+    # Commission 3 — draft
+    c3_no = generate_number(db, "commission")
+    c3 = Commission(
+        commission_no=c3_no, project_id=project.id, sub_item_id=sub_items[2].id if len(sub_items) > 2 else sub_items[0].id,
+        client_name="上海建工集团", description="钢结构焊接质量检测",
+        sample_count=2, status="draft", submitted_by=admin.id,
+    )
+    db.add(c3)
+
+    db.commit()
+    print("✓ Sample commissions and samples seeded")
+
+
 def seed_all():
-    """Run all seeds including project data."""
     db = SessionLocal()
     try:
         seed_project(db)
+        seed_numbering_rules(db)
+        seed_commissions_and_samples(db)
     except Exception as e:
         db.rollback()
-        print(f"Project seed failed: {e}")
+        print(f"Seed failed: {e}")
         raise
     finally:
         db.close()
