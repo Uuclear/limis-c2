@@ -31,4 +31,3 @@ class Commission(Base):
     sub_item = relationship("SubItem")
     submitter = relationship("User", foreign_keys=[submitted_by])
     reviewer = relationship("User", foreign_keys=[reviewed_by])
-    samples = relationship("Sample", back_populates="commission", cascade="all, delete-orphan")
