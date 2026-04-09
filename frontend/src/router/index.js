@@ -31,6 +31,30 @@ const routes = [
         component: () => import('@/views/project/detail.vue'),
         meta: { title: '项目详情' },
       },
+      {
+        path: 'commissions',
+        name: 'CommissionList',
+        component: () => import('@/views/commission/index.vue'),
+        meta: { title: '委托管理' },
+      },
+      {
+        path: 'commissions/:id',
+        name: 'CommissionDetail',
+        component: () => import('@/views/commission/detail.vue'),
+        meta: { title: '委托详情' },
+      },
+      {
+        path: 'samples',
+        name: 'SampleList',
+        component: () => import('@/views/sample/index.vue'),
+        meta: { title: '样品管理' },
+      },
+      {
+        path: 'samples/:id',
+        name: 'SampleDetail',
+        component: () => import('@/views/sample/detail.vue'),
+        meta: { title: '样品详情' },
+      },
     ],
   },
   {
